@@ -1,5 +1,5 @@
-import os
 import alpaca_trade_api as tradeapi
+import os
 import pandas as pd
 import json
 import math
@@ -9,8 +9,6 @@ import datetime
 import argparse
 from multiprocessing import Pool, Process
 
-print (os.getpid())
-
 parser = argparse.ArgumentParser(description="Continuously process multiple symbols")
 parser.add_argument('symbols', metavar='S', type = str, nargs = '+', help = 'A symbol for the process')
 
@@ -19,14 +17,27 @@ args = parser.parse_args()
 config = open('alpaca.json', 'r')
 creds = json.loads(config.read())
 
+log = open('BollingerTrader.log', 'a')
+
+pid = os.getpid()
+
+log.write('-' * 20 + '\n')
+log.write('PID: ' + str(pid) + '\n')
+log.write(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S") + '\n')
+log.write('-' * 20 + '\n')
+
 api = tradeapi.REST(creds['KEY_ID'], creds['SECRET_KEY'], base_url='https://paper-api.alpaca.markets') # or use ENV Vars shown below
 account = api.get_account()
 cash = account.cash
+
+print('Begin')
 
 #The trading function
 #Takes a symbol and calculates bollinger bands from the last 20 days of that symbol
 def bollinger_band_trader(symbol):
     symbol = symbol.upper()    
+
+    #print(symbol)
 
     position = list(map(lambda bar: (bar.o + bar.c)/2 , api.get_barset(symbol, 'day', limit = 20)[symbol]))
 
@@ -47,15 +58,19 @@ def bollinger_band_trader(symbol):
             weekno = datetime.datetime.today().weekday()
 
             the_time = datetime.datetime.now().time()
-            print(the_time)
+            #print(the_time)
             
             #Make sure the program runs during weekdays and between market hours 
             #opening at 9:30am and closing at 4:00pm
             if(weekno <= 4):
                 price = api.get_last_trade(symbol).price
-                has_position = True if api.get_position(symbol) else False
-                
-                #print(price)
+                has_position = True 
+
+                try:
+                    has_position = True if api.get_position(symbol) else False
+                except Exception:
+                    has_position = False
+
                 #Check if a position already exists in the portfolio
                 if price >= upper and has_position is True:
                     #Sell Sell Sell!!!
@@ -65,10 +80,15 @@ def bollinger_band_trader(symbol):
                         side = 'sell',
                         type = 'market',
                         time_in_force = 'day'
-                    )          
+                    )       
+                    
+                    now = str(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"))
+                    log.write( now + '\n')
+                    log.write('Sold ' + str(buyable_shares) + ' of ' + symbol + ' for a total of $' + str(buyable_shares * price) + '\n')       
+                    log.write('-' * 20 + '\n')       
 
-                    cash = cash - (price * buyable_shares)
-                    print("Sold " + str(buyable_shares) + " shares.")          
+                    print('Sold ' + str(buyable_shares) + ' of ' + symbol + ' for a total of ' + str(buyable_shares * price) + '\n')   
+   
 
                 elif price <= lower and has_position is False:
                     #Buy Buy Buy!!!
@@ -79,9 +99,14 @@ def bollinger_band_trader(symbol):
                         type = 'market',
                         time_in_force = 'day'
                     )
+                    
+                    now = str(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"))
+                    log.write( now + '\n')
+                    log.write('Bought ' + str(buyable_shares) + ' of ' + symbol + ' for a total of $' + str(buyable_shares * price) + '\n')       
+                    log.write('-' * 20 + '\n')
 
-                    cash = cash + (price * buyable_shares)
-                    print("Bought " + str(buyable_shares) + " shares.")
+                    print('Bought ' + str(buyable_shares) + ' of ' + symbol + ' for a total of $' + str(buyable_shares * price) + '\n')
+
 
                 #Moniter the current price every T amount of seconds
                 T = 30
@@ -97,7 +122,10 @@ def bollinger_band_trader(symbol):
             if(weekno >= 5):
                 print('It is the weekend. Market is closed.')
                 T = 3600
-                time.sleep(T)          
+                time.sleep(T)     
+
+        log.close()    
+        config.close() 
 
     else:
         print('Invalid Symbol')
@@ -111,4 +139,4 @@ if __name__ == '__main__':
     # for sym in args.symbols:
     #     bollinger_band_trader(sym)
 
-    
+
