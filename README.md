@@ -31,7 +31,9 @@ On a linux machine, type:
 <br/>
 sudo cron -e
 <br/>
+<br/>
 Then paste:
+<br/>
 0 9 * * 1-5 """Absolute Path of Python Environment""" """Absolute Path of BollingerTrader.py""" aapl f t >> ~/cron.log 2>&1
 <br/>
 0 16 * * 1-5 /usr/bin/pkill -f 'python.*BollingerTrader.py'
