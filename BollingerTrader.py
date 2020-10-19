@@ -1,3 +1,4 @@
+import os
 import alpaca_trade_api as tradeapi
 import pandas as pd
 import json
@@ -7,6 +8,8 @@ import time
 import datetime
 import argparse
 from multiprocessing import Pool, Process
+
+print (os.getpid())
 
 parser = argparse.ArgumentParser(description="Continuously process multiple symbols")
 parser.add_argument('symbols', metavar='S', type = str, nargs = '+', help = 'A symbol for the process')
@@ -52,7 +55,7 @@ def bollinger_band_trader(symbol):
                 price = api.get_last_trade(symbol).price
                 has_position = True if api.get_position(symbol) else False
                 
-                print(price)
+                #print(price)
                 #Check if a position already exists in the portfolio
                 if price >= upper and has_position is True:
                     #Sell Sell Sell!!!
@@ -64,6 +67,7 @@ def bollinger_band_trader(symbol):
                         time_in_force = 'day'
                     )          
 
+                    cash = cash - (price * buyable_shares)
                     print("Sold " + str(buyable_shares) + " shares.")          
 
                 elif price <= lower and has_position is False:
@@ -76,6 +80,7 @@ def bollinger_band_trader(symbol):
                         time_in_force = 'day'
                     )
 
+                    cash = cash + (price * buyable_shares)
                     print("Bought " + str(buyable_shares) + " shares.")
 
                 #Moniter the current price every T amount of seconds
@@ -99,11 +104,11 @@ def bollinger_band_trader(symbol):
 
 
 if __name__ == '__main__':
-    # p = Pool(len(args.symbols))
-    # p.map(bollinger_band_trader, args.symbols)
-    # p.terminate()
+    p = Pool(len(args.symbols))
+    p.map(bollinger_band_trader, args.symbols)
+    p.terminate()
 
-    for sym in args.symbols:
-        bollinger_band_trader(sym)
+    # for sym in args.symbols:
+    #     bollinger_band_trader(sym)
 
     
