@@ -42,7 +42,7 @@ print('Begin on ' + platform + ' system')
 #Takes a symbol and calculates bollinger bands from the last 20 days of that symbol
 def bollinger_band_trader(symbol):
     symbol = symbol.upper()    
-    record = '---\n'
+    record = ''
     sellable_shares = 0
 
     #print(symbol)
