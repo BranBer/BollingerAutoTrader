@@ -135,12 +135,13 @@ def bollinger_band_trader(symbol):
                 upper = mean + 2 * statistics.stdev(position)
                 lower = mean - 2 * statistics.stdev(position)
                 
-                print('      Symbol: ' + symbol)
-                print('        Mean: $' + str(mean))
-                print('Upper Bounds: $' + str(upper))
-                print('Lower Bounds: $' + str(lower))
-                print(record)
-                print('-' * 20)
+                #print('      Symbol: ' + symbol)
+                #print('        Mean: $' + str(mean))
+                #print('Upper Bounds: $' + str(upper))
+                #print('Lower Bounds: $' + str(lower))
+                if(record != ''):
+                    print(record)
+                #print('-' * 20)
 
             #If it is the weekend, check every hour for whether it is the weekday
             if(weekno >= 5):
