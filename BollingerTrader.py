@@ -29,10 +29,6 @@ log.write('-' * 20 + '\n')
 
 log.close()
 
-api = tradeapi.REST(creds['KEY_ID'], creds['SECRET_KEY'], base_url='https://paper-api.alpaca.markets') # or use ENV Vars shown below
-account = api.get_account()
-cash = account.cash
-
 market_open = datetime.time(9, 0, 0)
 market_close = datetime.time(16, 0, 0)
 
@@ -45,8 +41,11 @@ def bollinger_band_trader(symbol):
     symbol = symbol.upper()    
     record = ''
     sellable_shares = 0
+    time_elapsed = 0
 
-    #print(symbol)
+    api = tradeapi.REST(creds['KEY_ID'], creds['SECRET_KEY'], base_url='https://paper-api.alpaca.markets') # or use ENV Vars shown below
+    account = api.get_account()
+    cash = account.cash
 
     position = list(map(lambda bar: (bar.o + bar.c)/2 , api.get_barset(symbol, 'minute', limit = 1000)[symbol]))
 
@@ -66,8 +65,6 @@ def bollinger_band_trader(symbol):
         while(True):
             weekno = datetime.datetime.today().weekday()
             the_time = datetime.datetime.now().time()
-
-            time_elapsed = 0
 
             #Make sure the program runs during weekdays and between market hours 
             #opening at 9:00am and closing at 4:00pm
@@ -120,8 +117,14 @@ def bollinger_band_trader(symbol):
                     log.close()
 
                     record += 'Bought ' + str(buyable_shares) + ' of ' + symbol + ' for a total of $' + str(buyable_shares * price) + '\n'
+                else:
+                    #Check the api again so the connection does not time out
+                    T = 30
+                    time_elapsed += T
+                    time.sleep(T)   
 
-
+                    api = tradeapi.REST(creds['KEY_ID'], creds['SECRET_KEY'], base_url='https://paper-api.alpaca.markets') # or use ENV Vars shown below
+                    account = api.get_account()
 
                 #Moniter the current price every T amount of seconds
                 T = 15
@@ -133,14 +136,9 @@ def bollinger_band_trader(symbol):
                 mean = statistics.mean(position)
                 upper = mean + 2 * statistics.stdev(position)
                 lower = mean - 2 * statistics.stdev(position)
-                
-                #print('      Symbol: ' + symbol)
-                #print('        Mean: $' + str(mean))
-                #print('Upper Bounds: $' + str(upper))
-                #print('Lower Bounds: $' + str(lower))
+
                 if(record != ''):
                     print(record)
-                #print('-' * 20)
 
             #If it is the weekend, check every hour for whether it is the weekday
             if(weekno >= 5):
