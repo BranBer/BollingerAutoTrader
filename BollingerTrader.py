@@ -36,6 +36,7 @@ cash = account.cash
 market_open = datetime.time(9, 0, 0)
 market_close = datetime.time(16, 0, 0)
 
+
 print('Begin on ' + platform + ' system')
 
 #The trading function
@@ -64,11 +65,10 @@ def bollinger_band_trader(symbol):
         #If the current price of the current position is less that the lower limit, buy this position.
         while(True):
             weekno = datetime.datetime.today().weekday()
-
-
             the_time = datetime.datetime.now().time()
-            #print(the_time)
-            
+
+            time_elapsed = 0
+
             #Make sure the program runs during weekdays and between market hours 
             #opening at 9:00am and closing at 4:00pm
             if(weekno <= 4 and the_time >= market_open and the_time <= market_close):
@@ -81,8 +81,6 @@ def bollinger_band_trader(symbol):
                     sellable_shares = owned_position.qty               
                 except Exception:
                     has_position = False
-
-                #print('Owns position ' + symbol + ': ' + str(has_position))
 
                 #Check if a position already exists in the portfolio
                 if price >= upper and has_position is True:
@@ -104,7 +102,6 @@ def bollinger_band_trader(symbol):
 
                     record += 'Sold ' + str(sellable_shares) + ' of ' + symbol + ' for a total of ' + str(sellable_shares * price) + '\n'   
    
-
                 if price <= lower and has_position is False:
                     #Buy Buy Buy!!!
                     api.submit_order(
@@ -125,8 +122,10 @@ def bollinger_band_trader(symbol):
                     record += 'Bought ' + str(buyable_shares) + ' of ' + symbol + ' for a total of $' + str(buyable_shares * price) + '\n'
 
 
+
                 #Moniter the current price every T amount of seconds
                 T = 15
+                time_elapsed += T
                 time.sleep(T)
 
                 #Get the next conditions for the next price check
@@ -147,7 +146,18 @@ def bollinger_band_trader(symbol):
             if(weekno >= 5):
                 print('It is the weekend. Market is closed.')
                 T = 3600
-                time.sleep(T)     
+                time_elapsed += T
+                time.sleep(T)   
+
+            if (time_elapsed >= 86400):
+                log = open('BollingerTrader.log', 'a')
+                log.write('-' * 20 + '\n')
+                log.write(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S") + '\n')
+                log.write('-' * 20 + '\n')
+                log.close()
+                time_elapsed = 0
+                
+              
 
         log.close()    
         config.close() 
