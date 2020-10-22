@@ -35,6 +35,10 @@ market_close = datetime.time(16, 0, 0)
 
 print('Begin on ' + platform + ' system')
 
+api = tradeapi.REST(creds['KEY_ID'], creds['SECRET_KEY'], base_url='https://paper-api.alpaca.markets') # or use ENV Vars shown below
+account = api.get_account()
+cash = account.cash
+
 #The trading function
 #Takes a symbol and calculates bollinger bands from the last 20 days of that symbol
 def bollinger_band_trader(symbol):
@@ -43,9 +47,10 @@ def bollinger_band_trader(symbol):
     sellable_shares = 0
     time_elapsed = 0
 
-    api = tradeapi.REST(creds['KEY_ID'], creds['SECRET_KEY'], base_url='https://paper-api.alpaca.markets') # or use ENV Vars shown below
-    account = api.get_account()
-    cash = account.cash
+
+    global api
+    global account
+    global cash
 
     position = list(map(lambda bar: (bar.o + bar.c)/2 , api.get_barset(symbol, 'minute', limit = 1000)[symbol]))
 
@@ -117,14 +122,7 @@ def bollinger_band_trader(symbol):
                     log.close()
 
                     record += 'Bought ' + str(buyable_shares) + ' of ' + symbol + ' for a total of $' + str(buyable_shares * price) + '\n'
-                else:
-                    #Check the api again so the connection does not time out
-                    T = 30
-                    time_elapsed += T
-                    time.sleep(T)   
 
-                    api = tradeapi.REST(creds['KEY_ID'], creds['SECRET_KEY'], base_url='https://paper-api.alpaca.markets') # or use ENV Vars shown below
-                    account = api.get_account()
 
                 #Moniter the current price every T amount of seconds
                 T = 15
@@ -132,10 +130,30 @@ def bollinger_band_trader(symbol):
                 time.sleep(T)
 
                 #Get the next conditions for the next price check
-                position = list(map(lambda bar: (bar.o + bar.c)/2 , api.get_barset(symbol, 'minute', limit = 1000)[symbol]))
-                mean = statistics.mean(position)
-                upper = mean + 2 * statistics.stdev(position)
-                lower = mean - 2 * statistics.stdev(position)
+                try:
+                    position = list(map(lambda bar: (bar.o + bar.c)/2 , api.get_barset(symbol, 'minute', limit = 1000)[symbol]))
+                    mean = statistics.mean(position)
+                    upper = mean + 2 * statistics.stdev(position)
+                    lower = mean - 2 * statistics.stdev(position)
+                    print('Ran Fine')
+                    print('upper: ' + str(upper))
+                    print('lower: ' + str(lower))
+                    raise ValueError('Test')
+
+                except Exception:
+                    api = tradeapi.REST(creds['KEY_ID'], creds['SECRET_KEY'], base_url='https://paper-api.alpaca.markets') # or use ENV Vars shown below
+                    account = api.get_account()
+                    position = list(map(lambda bar: (bar.o + bar.c)/2 , api.get_barset(symbol, 'minute', limit = 1000)[symbol]))
+                    mean = statistics.mean(position)
+                    upper = mean + 2 * statistics.stdev(position)
+                    lower = mean - 2 * statistics.stdev(position)
+                    print('Exception Caught')
+                    print('upper: ' + str(upper))
+                    print('lower: ' + str(lower))
+
+
+                print('upper: ' + str(upper))
+                print('lower: ' + str(lower))
 
                 if(record != ''):
                     print(record)
