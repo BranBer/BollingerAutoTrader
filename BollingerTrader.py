@@ -22,10 +22,10 @@ log = open('BollingerTrader.log', 'a')
 
 pid = os.getpid()
 
-log.write('-' * 20 + '\n')
+log.write('-' * 120 + '\n')
 log.write('PID: ' + str(pid) + '\n')
 log.write(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S") + '\n')
-log.write('-' * 20 + '\n')
+log.write('-' * 120 + '\n')
 
 log.close()
 
@@ -47,12 +47,11 @@ def bollinger_band_trader(symbol):
     sellable_shares = 0
     time_elapsed = 0
 
-
     global api
     global account
     global cash
 
-    position = list(map(lambda bar: (bar.o + bar.c)/2 , api.get_barset(symbol, 'minute', limit = 1000)[symbol]))
+    position = list(map(lambda bar: (bar.o + bar.c)/2 , api.get_barset(symbol, '5Min', limit = 240)[symbol]))
 
     if(position):
         mean = statistics.mean(position)
@@ -75,14 +74,11 @@ def bollinger_band_trader(symbol):
             #opening at 9:00am and closing at 4:00pm
             if(weekno <= 4 and the_time >= market_open and the_time <= market_close):
                 price = api.get_last_trade(symbol).price
-                has_position = True 
 
-                try:
-                    has_position = True 
-                    owned_position = api.get_position(symbol)   
-                    sellable_shares = owned_position.qty               
-                except Exception:
-                    has_position = False
+                positions = list(map(lambda pos: pos.symbol, api.list_positions()))
+                
+
+                has_position = True if symbol in positions else False
 
                 #Check if a position already exists in the portfolio
                 if price >= upper and has_position is True:
@@ -99,12 +95,11 @@ def bollinger_band_trader(symbol):
                     log = open('BollingerTrader.log', 'a')
                     log.write( now + '\n')
                     log.write('Sold ' + str(sellable_shares) + ' of ' + symbol + ' for a total of $' + str(sellable_shares * price) + '\n')       
-                    log.write('-' * 20 + '\n')       
+                    log.write('-' * 120 + '\n')       
                     log.close()
 
                     record += 'Sold ' + str(sellable_shares) + ' of ' + symbol + ' for a total of ' + str(sellable_shares * price) + '\n'   
-   
-                if price <= lower and has_position is False:
+                elif price <= lower and has_position is False:
                     #Buy Buy Buy!!!
                     api.submit_order(
                         symbol= symbol,
@@ -118,7 +113,7 @@ def bollinger_band_trader(symbol):
                     log = open('BollingerTrader.log', 'a')
                     log.write( now + '\n')
                     log.write('Bought ' + str(buyable_shares) + ' of ' + symbol + ' for a total of $' + str(buyable_shares * price) + '\n')       
-                    log.write('-' * 20 + '\n')
+                    log.write('-' * 120 + '\n')
                     log.close()
 
                     record += 'Bought ' + str(buyable_shares) + ' of ' + symbol + ' for a total of $' + str(buyable_shares * price) + '\n'
@@ -129,23 +124,34 @@ def bollinger_band_trader(symbol):
                 time_elapsed += T
                 time.sleep(T)
 
+                #Log the current mean, upper limit and lower limit
+                now = str(datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
+                symbol_data = '{:<22s}    {:<6s}    Price: ${:>7.2f}    Upper: ${:>7.2f}    Mean: ${:>7.2f}    Lower: ${:>7.2f}'.format(now, symbol, float(price), float(upper), float(mean), float(lower))
+
+                log = open('BollingerTrader.log', 'a')
+                log.write(symbol_data + '\n')
+                log.write('-'*120 + '\n')
+                log.close()
+
                 #Get the next conditions for the next price check
                 try:
-                    position = list(map(lambda bar: (bar.o + bar.c)/2 , api.get_barset(symbol, 'minute', limit = 1000)[symbol]))
+                    position = list(map(lambda bar: (bar.o + bar.c)/2 , api.get_barset(symbol, '5Min', limit = 240)[symbol]))
                     mean = statistics.mean(position)
                     upper = mean + 2 * statistics.stdev(position)
                     lower = mean - 2 * statistics.stdev(position)
                 except Exception:
                     api = tradeapi.REST(creds['KEY_ID'], creds['SECRET_KEY'], base_url='https://paper-api.alpaca.markets') # or use ENV Vars shown below
                     account = api.get_account()
-                    position = list(map(lambda bar: (bar.o + bar.c)/2 , api.get_barset(symbol, 'minute', limit = 1000)[symbol]))
+                    position = list(map(lambda bar: (bar.o + bar.c)/2 , api.get_barset(symbol, '5Min', limit = 240)[symbol]))
                     mean = statistics.mean(position)
                     upper = mean + 2 * statistics.stdev(position)
                     lower = mean - 2 * statistics.stdev(position)
 
+        
                 if(record != ''):
                     print(record)
                     record = ''
+
 
             #If it is the weekend, check every hour for whether it is the weekday
             if(weekno >= 5):
@@ -156,9 +162,9 @@ def bollinger_band_trader(symbol):
 
             if (time_elapsed >= 86400):
                 log = open('BollingerTrader.log', 'a')
-                log.write('-' * 20 + '\n')
+                log.write('-' * 120 + '\n')
                 log.write(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S") + '\n')
-                log.write('-' * 20 + '\n')
+                log.write('-' * 120 + '\n')
                 log.close()
                 time_elapsed = 0
                 
@@ -175,8 +181,5 @@ if __name__ == '__main__':
     p = Pool(len(args.symbols))
     p.map(bollinger_band_trader, args.symbols)
     p.terminate()
-
-    # for sym in args.symbols:
-    #     bollinger_band_trader(sym)
 
 
