@@ -135,11 +135,6 @@ def bollinger_band_trader(symbol):
                     mean = statistics.mean(position)
                     upper = mean + 2 * statistics.stdev(position)
                     lower = mean - 2 * statistics.stdev(position)
-                    print('Ran Fine')
-                    print('upper: ' + str(upper))
-                    print('lower: ' + str(lower))
-                    raise ValueError('Test')
-
                 except Exception:
                     api = tradeapi.REST(creds['KEY_ID'], creds['SECRET_KEY'], base_url='https://paper-api.alpaca.markets') # or use ENV Vars shown below
                     account = api.get_account()
@@ -147,13 +142,6 @@ def bollinger_band_trader(symbol):
                     mean = statistics.mean(position)
                     upper = mean + 2 * statistics.stdev(position)
                     lower = mean - 2 * statistics.stdev(position)
-                    print('Exception Caught')
-                    print('upper: ' + str(upper))
-                    print('lower: ' + str(lower))
-
-
-                print('upper: ' + str(upper))
-                print('lower: ' + str(lower))
 
                 if(record != ''):
                     print(record)
