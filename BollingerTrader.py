@@ -157,6 +157,7 @@ def bollinger_band_trader(symbol):
 
                 if(record != ''):
                     print(record)
+                    record = ''
 
             #If it is the weekend, check every hour for whether it is the weekday
             if(weekno >= 5):
